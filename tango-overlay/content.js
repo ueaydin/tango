@@ -1,6 +1,6 @@
-// YouTube Tango Overlay - content script
-// Manifest V3 isolated world'de calisir. Fuse.js (lib/fuse.min.js) bu dosyadan
-// once yuklenir ve global `Fuse` olarak erisilebilir.
+// Tango Overlay - content script
+// Manifest V3 isolated world'de YouTube ve Apple Music Web Player'da calisir.
+// Fuse.js (lib/fuse.min.js) bu dosyadan once yuklenir ve global `Fuse` olarak erisilir.
 
 (() => {
   "use strict";
@@ -15,34 +15,103 @@
   };
   let shadowHost = null;     // <div> shadow DOM host elementi
   let shadowRoot = null;
-  let lastVideoId = null;    // Son islenen YouTube video ID'si
   let lastMatchSignature = null; // Ayni kayit tekrar render edilmesin diye
 
-  // --- Yardimcilar ---------------------------------------------------------
+  // --- Platform katmani -----------------------------------------------------
 
-  /** URL'den YouTube video ID'sini cek. */
-  function getVideoId() {
-    try {
-      const u = new URL(location.href);
-      return u.searchParams.get("v");
-    } catch (e) {
-      return null;
-    }
+  /** Calistigimiz platformu dondurur: "youtube" | "applemusic" | null. */
+  function getPlatform() {
+    const h = location.hostname;
+    if (h.endsWith("youtube.com")) return "youtube";
+    if (h === "music.apple.com") return "applemusic";
+    return null;
   }
 
-  /** Sayfadaki video basligini oku (3 kaynak, oncelik sirasiyla). */
-  function getVideoTitle() {
+  /** Su an calmakta olan parcanin kararli bir kimligini uretir (hide/cache icin). */
+  function getTrackKey() {
+    const p = getPlatform();
+    if (p === "youtube") {
+      try {
+        return new URL(location.href).searchParams.get("v");
+      } catch (_) { return null; }
+    }
+    if (p === "applemusic") {
+      const t = getAppleMusicTrack();
+      return t ? (t.title + "|" + t.artist).toLowerCase() : null;
+    }
+    return null;
+  }
+
+  /** findMatch'e beslenecek arama sorgusu (baslik + varsa sanatci). */
+  function getTrackQuery() {
+    const p = getPlatform();
+    if (p === "youtube") return getYouTubeTitle();
+    if (p === "applemusic") {
+      const t = getAppleMusicTrack();
+      if (!t) return null;
+      return (t.title + " " + (t.artist || "")).trim();
+    }
+    return null;
+  }
+
+  /** Bu sayfada overlay gosterilmeli mi? */
+  function isOnPlayablePage() {
+    const p = getPlatform();
+    if (p === "youtube") return location.pathname.startsWith("/watch");
+    if (p === "applemusic") return true;
+    return false;
+  }
+
+  /** YouTube video basligi (3 kaynak, oncelik sirasiyla). */
+  function getYouTubeTitle() {
     const s1 = document.querySelector("h1.ytd-watch-metadata yt-formatted-string");
     if (s1 && s1.textContent.trim()) return s1.textContent.trim();
 
     const s2 = document.title;
     if (s2) {
-      // "... - YouTube" eki varsa temizle
       return s2.replace(/\s*-\s*YouTube\s*$/i, "").trim();
     }
 
     const s3 = document.querySelector('meta[property="og:title"]');
     if (s3 && s3.content) return s3.content.trim();
+
+    return null;
+  }
+
+  /** Apple Music Web Player: {title, artist, album}. MediaSession once, DOM fallback. */
+  function getAppleMusicTrack() {
+    // 1) MediaSession API - Apple Music OS media kontrollerine bunu set eder
+    try {
+      const m = navigator.mediaSession && navigator.mediaSession.metadata;
+      if (m && m.title) {
+        return {
+          title: String(m.title || "").trim(),
+          artist: String(m.artist || "").trim(),
+          album: String(m.album || "").trim()
+        };
+      }
+    } catch (_) {}
+
+    // 2) DOM fallback - chrome playback LCD bar
+    const songEl = document.querySelector(
+      '.web-chrome-playback-lcd__song-name-scroll, ' +
+      '[class*="chrome-playback-lcd__song-name"], ' +
+      '[class*="lcd-meta-line--song"], ' +
+      '[class*="song-name"]'
+    );
+    if (songEl && songEl.textContent.trim()) {
+      const artistEl = document.querySelector(
+        '.web-chrome-playback-lcd__sub-copy-scroll-container, ' +
+        '[class*="chrome-playback-lcd__sub-copy"], ' +
+        '[class*="lcd-meta-line--sub"], ' +
+        '[class*="sub-copy"]'
+      );
+      return {
+        title: songEl.textContent.trim(),
+        artist: artistEl ? artistEl.textContent.trim() : "",
+        album: ""
+      };
+    }
 
     return null;
   }
@@ -59,16 +128,16 @@
       .trim();
   }
 
-  /** "bu video icin gizle" flag'i var mi? */
-  function isHiddenForCurrentVideo() {
-    const vid = getVideoId();
-    if (!vid) return false;
-    return sessionStorage.getItem("tangoOverlay:hidden:" + vid) === "1";
+  /** "bu parca icin gizle" flag'i var mi? */
+  function isHiddenForCurrentTrack() {
+    const k = getTrackKey();
+    if (!k) return false;
+    return sessionStorage.getItem("tangoOverlay:hidden:" + k) === "1";
   }
 
-  function setHiddenForCurrentVideo() {
-    const vid = getVideoId();
-    if (vid) sessionStorage.setItem("tangoOverlay:hidden:" + vid, "1");
+  function setHiddenForCurrentTrack() {
+    const k = getTrackKey();
+    if (k) sessionStorage.setItem("tangoOverlay:hidden:" + k, "1");
   }
 
   // --- Bootstrap -----------------------------------------------------------
@@ -323,7 +392,7 @@
   async function showCard(match) {
     await ensureShadow();
     const card = shadowRoot.querySelector(".card");
-    const sig = match.item.id + "|" + getVideoId();
+    const sig = match.item.id + "|" + getTrackKey();
     // Ayni eslesme zaten gorunuyorsa yeniden cizme
     if (lastMatchSignature === sig && card.classList.contains("visible")) return;
 
@@ -346,7 +415,7 @@
     if (closeBtn) {
       closeBtn.addEventListener("click", () => {
         hideCard();
-        setHiddenForCurrentVideo();
+        setHiddenForCurrentTrack();
       });
     }
 
@@ -431,21 +500,20 @@
       hideCard();
       return;
     }
-    // Sadece /watch URL'lerinde calis
-    if (!location.pathname.startsWith("/watch")) {
+    if (!isOnPlayablePage()) {
       hideCard();
       return;
     }
-    if (isHiddenForCurrentVideo()) {
+    if (isHiddenForCurrentTrack()) {
       hideCard();
       return;
     }
 
-    const title = getVideoTitle();
-    if (!title) return;
+    const query = getTrackQuery();
+    if (!query) return;
 
     await loadDatabase();
-    const match = findMatch(title);
+    const match = findMatch(query);
     if (!match) {
       hideCard();
       return;
@@ -484,6 +552,37 @@
   if (titleTarget) {
     const titleObserver = new MutationObserver(() => scheduleRefresh(400));
     titleObserver.observe(titleTarget, { childList: true, subtree: true, characterData: true });
+  }
+
+  // Apple Music: audio element'leri, DOM ve poll ile parca degisimini yakala
+  if (getPlatform() === "applemusic") {
+    const attachMedia = (el) => {
+      if (el._tangoBound) return;
+      el._tangoBound = true;
+      ["loadedmetadata", "play", "playing", "durationchange"].forEach(ev =>
+        el.addEventListener(ev, () => scheduleRefresh(400))
+      );
+    };
+    document.querySelectorAll("audio, video").forEach(attachMedia);
+    new MutationObserver(muts => {
+      for (const m of muts) {
+        for (const node of m.addedNodes) {
+          if (node.nodeType !== 1) continue;
+          if (node.tagName === "AUDIO" || node.tagName === "VIDEO") attachMedia(node);
+          else if (node.querySelectorAll) node.querySelectorAll("audio, video").forEach(attachMedia);
+        }
+      }
+    }).observe(document.documentElement, { childList: true, subtree: true });
+
+    // Fallback poll: MediaSession/DOM baska yoldan degisirse
+    let lastKey = null;
+    setInterval(() => {
+      const k = getTrackKey();
+      if (k && k !== lastKey) {
+        lastKey = k;
+        scheduleRefresh(200);
+      }
+    }, 2000);
   }
 
   // Ayar degisikliklerini dinle

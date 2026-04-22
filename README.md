@@ -1,18 +1,20 @@
-# YouTube Tango Overlay
+# Tango Overlay
 
-YouTube'da çalan tango şarkısını otomatik tanıyan ve sayfanın sağ üst köşesinde
-orkestra, kantor, yıl, besteci, söz yazarı ve diğer bilgileri gösteren Chrome
-eklentisi. Tamamen offline çalışır — eklenti paketine gömülü El Recodo
-veritabanında fuzzy eşleştirme yapar.
+**YouTube** veya **Apple Music Web Player** üzerinde çalan tango şarkısını
+otomatik tanıyan ve sayfanın sağ üst köşesinde orkestra, kantor, yıl, besteci,
+söz yazarı ve diğer bilgileri gösteren Chrome eklentisi. Tamamen offline
+çalışır — eklenti paketine gömülü El Recodo veritabanında fuzzy eşleştirme yapar.
 
 ## Özellikler
 
 - ~16.858 kayıtlık El Recodo tango veritabanı eklenti içine gömülür
 - [Fuse.js](https://www.fusejs.io/) ile yazım farklılıklarına dayanıklı eşleştirme + fallback (en kısa token atılır)
+- **Çoklu platform**: YouTube `watch` sayfaları + `music.apple.com` Web Player
+- **Apple Music'te başlık otomatik tespit**: `navigator.mediaSession.metadata` önce, sayfanın player bar DOM'u fallback (başlıkta parça ismi olmasa bile çalışır)
 - **Aynı şarkının farklı yıl kayıtları rozet olarak listelenir** (ör. Pugliese "La Yumba" → 1946 · 1952 · 1985), rozete tıklayınca kart o kaydın detaylarına geçer
 - Shadow DOM ile sayfa CSS'inden tam izole overlay kart
 - Sürüklenebilir kart, kapatma butonu, fade-in animasyonu
-- YouTube SPA gezinmelerinde kart otomatik günceller
+- SPA gezinmelerinde ve parça değişiminde kart otomatik günceller
 - Popup üzerinden eklentiyi aç/kapa ve eşleşme hassasiyeti ayarı
 - Manifest V3 uyumlu, hiç remote kod yok, strict CSP
 
