@@ -131,6 +131,49 @@
   font-style: italic;
 }
 
+.row.alternatives {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.alt-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+  margin-right: 4px;
+  font-weight: 500;
+}
+
+.alt-chip {
+  font: inherit;
+  font-size: 11px;
+  padding: 3px 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.alt-chip:hover {
+  background: rgba(255, 200, 0, 0.12);
+  border-color: rgba(255, 200, 0, 0.4);
+  color: #fff;
+}
+
+.alt-chip.active {
+  background: rgba(255, 200, 0, 0.18);
+  border-color: rgba(255, 200, 0, 0.6);
+  color: #ffc800;
+  font-weight: 600;
+}
+
 /* Scrollbar sadelestirmesi */
 .card::-webkit-scrollbar {
   width: 6px;

@@ -194,6 +194,23 @@
     return null;
   }
 
+  /** Verilen kayit icin DB'de ayni sarki+orkestra'ya sahip tum kayitlari dondur.
+   *  Yil'a gore kronolojik sirali (eski -> yeni). Tek kayit varsa tek elemanli. */
+  function findAlternatives(item) {
+    if (!database || !item) return [item];
+    const matches = database.filter(r =>
+      r._n_title === item._n_title &&
+      r._n_orchestra === item._n_orchestra
+    );
+    // Yila gore sirala (null yillar en sona)
+    matches.sort((a, b) => {
+      if (a.year == null) return 1;
+      if (b.year == null) return -1;
+      return a.year - b.year;
+    });
+    return matches.length ? matches : [item];
+  }
+
   // --- Shadow DOM kart ------------------------------------------------------
 
   /** Shadow host'u olustur veya mevcut olani dondur. */
@@ -248,10 +265,21 @@
     }[c]));
   }
 
-  /** Kayittan kart icerigi uret. */
-  function renderCardBody(match) {
-    const it = match.item;
+  /** Alternatif rozet icin kisa etiket: "1945 · Instr." veya "1951 · Maida". */
+  function altLabel(it) {
+    const y = it.year != null ? it.year : "?";
+    const s = (it.singer || "").trim();
+    if (!s || /^instrumental$/i.test(s)) return `${y} · Instr.`;
+    // Kantor adinin ilk parcasi (genelde soyad)
+    const short = s.split(/\s+/).slice(-1)[0] || s;
+    return `${y} · ${short}`;
+  }
+
+  /** Kayittan kart icerigi uret. `match.alternatives` varsa rozetler eklenir. */
+  function renderCardBody(match, activeItem) {
+    const it = activeItem || match.item;
     const approx = match.score > 0.3;
+    const alternatives = match.alternatives || [match.item];
     const rating = (it.dance_rating || it.listen_rating)
       ? `<div class="row small">⭐ ${it.dance_rating != null ? `Dans ${it.dance_rating.toFixed(2)}` : ""}${(it.dance_rating != null && it.listen_rating != null) ? " • " : ""}${it.listen_rating != null ? `Dinleme ${it.listen_rating.toFixed(2)}` : ""}</div>`
       : "";
@@ -262,6 +290,16 @@
       it.label ? `💿 ${esc(it.label)}` : null
     ].filter(Boolean).join(" • ");
     const tags = (it.tags && it.tags !== "-") ? `<div class="row tags">🏷 ${esc(it.tags)}</div>` : "";
+
+    // Alternatif kayit rozetleri (sadece 2+ kayit varsa goster)
+    let altsHtml = "";
+    if (alternatives.length > 1) {
+      const chips = alternatives.map(a => {
+        const isActive = a.id === it.id;
+        return `<button class="alt-chip${isActive ? ' active' : ''}" data-alt-id="${esc(a.id)}" title="${esc(a.year || '')} ${esc(a.singer || '')}">${esc(altLabel(a))}</button>`;
+      }).join("");
+      altsHtml = `<div class="row alternatives"><span class="alt-label">📀 ${alternatives.length} kayıt:</span>${chips}</div>`;
+    }
 
     return `
       <div class="header drag-handle">
@@ -277,6 +315,7 @@
       ${it.composer ? `<div class="row small">🎹 Beste: ${esc(it.composer)}</div>` : ""}
       ${rating}
       ${tags}
+      ${altsHtml}
     `;
   }
 
@@ -289,20 +328,44 @@
     if (lastMatchSignature === sig && card.classList.contains("visible")) return;
 
     lastMatchSignature = sig;
-    card.innerHTML = renderCardBody(match);
+    // Aktif kayit = match.item (varsayilan); kullanici rozet tikladiginda degisir
+    const state = { active: match.item };
+    const redraw = () => {
+      card.innerHTML = renderCardBody(match, state.active);
+      bindCardEvents(card, match, state, redraw);
+    };
+    redraw();
     card.classList.remove("visible");
     // Fade-in animasyonunu tetiklemek icin frame bekle
     requestAnimationFrame(() => card.classList.add("visible"));
+  }
 
-    // Event listener'larini bagla
+  /** Kart icindeki butonlara event binding yapar (her re-render'dan sonra cagrilir). */
+  function bindCardEvents(card, match, state, redraw) {
     const closeBtn = card.querySelector(".close-btn");
-    closeBtn.addEventListener("click", () => {
-      hideCard();
-      setHiddenForCurrentVideo();
-    });
+    if (closeBtn) {
+      closeBtn.addEventListener("click", () => {
+        hideCard();
+        setHiddenForCurrentVideo();
+      });
+    }
 
     const dragHandle = card.querySelector(".drag-handle");
-    attachDrag(card, dragHandle);
+    if (dragHandle) attachDrag(card, dragHandle);
+
+    // Alternatif kayit rozetleri
+    const alternatives = match.alternatives || [match.item];
+    card.querySelectorAll(".alt-chip").forEach(chip => {
+      chip.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        const id = chip.getAttribute("data-alt-id");
+        const newItem = alternatives.find(a => a.id === id);
+        if (newItem && newItem.id !== state.active.id) {
+          state.active = newItem;
+          redraw();
+        }
+      });
+    });
   }
 
   function hideCard() {
@@ -387,6 +450,8 @@
       hideCard();
       return;
     }
+    // Ayni sarki+orkestra kombinasyonundaki diger kayitlari ekle
+    match.alternatives = findAlternatives(match.item);
     await showCard(match);
   }
 

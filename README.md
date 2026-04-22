@@ -8,7 +8,8 @@ veritabanında fuzzy eşleştirme yapar.
 ## Özellikler
 
 - ~16.858 kayıtlık El Recodo tango veritabanı eklenti içine gömülür
-- [Fuse.js](https://www.fusejs.io/) ile yazım farklılıklarına dayanıklı eşleştirme
+- [Fuse.js](https://www.fusejs.io/) ile yazım farklılıklarına dayanıklı eşleştirme + fallback (en kısa token atılır)
+- **Aynı şarkının farklı yıl kayıtları rozet olarak listelenir** (ör. Pugliese "La Yumba" → 1946 · 1952 · 1985), rozete tıklayınca kart o kaydın detaylarına geçer
 - Shadow DOM ile sayfa CSS'inden tam izole overlay kart
 - Sürüklenebilir kart, kapatma butonu, fade-in animasyonu
 - YouTube SPA gezinmelerinde kart otomatik günceller
