@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube Tango Overlay",
+  "version": "1.0.0",
+  "description": "YouTube'da çalan tango şarkısını tanır ve El Recodo veritabanından detaylarını (orkestra, kantor, yıl, besteci, söz yazarı) sağ üst köşede gösterir.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "Tango Overlay Ayarları",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "permissions": ["storage"],
+  "host_permissions": ["*://*.youtube.com/*"],
+  "content_scripts": [
+    {
+      "matches": ["*://*.youtube.com/watch*"],
+      "js": ["lib/fuse.min.js", "content.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["data/tango_database.json", "overlay.css"],
+      "matches": ["*://*.youtube.com/*"]
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
+}

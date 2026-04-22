@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Tango Overlay Ayarları</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <span class="logo">🎵</span>
+    <h1>Tango Overlay</h1>
+  </header>
+
+  <section class="group">
+    <label class="toggle">
+      <input type="checkbox" id="enabled">
+      <span>Eklentiyi etkinleştir</span>
+    </label>
+  </section>
+
+  <section class="group">
+    <label for="threshold">
+      Eşleşme hassasiyeti
+      <span id="thresholdValue" class="value">0.40</span>
+    </label>
+    <input type="range" id="threshold" min="0.10" max="0.70" step="0.05" value="0.40">
+    <div class="hint">
+      <span>Sıkı</span>
+      <span>Esnek</span>
+    </div>
+  </section>
+
+  <section class="group buttons">
+    <button id="resetPos" type="button">Kart pozisyonunu sıfırla</button>
+    <button id="reload" type="button">Bu sayfada yeniden çalıştır</button>
+  </section>
+
+  <footer>
+    <span id="status"></span>
+  </footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>

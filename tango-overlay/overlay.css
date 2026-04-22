@@ -1,0 +1,144 @@
+/* Shadow DOM icine enjekte edilen stiller. Sayfaya sizmaz, sayfadan da etkilenmez. */
+
+:host {
+  all: initial;
+}
+
+.card {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  width: 320px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  background: rgba(20, 20, 20, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 14px 16px;
+  color: #f0f0f0;
+  font-family: system-ui, -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 0.25s ease-out, transform 0.25s ease-out;
+  pointer-events: auto;
+  z-index: 2147483647;
+}
+
+.card.visible {
+  opacity: 1;
+  transform: translateY(0);
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -4px -4px 8px -4px;
+  padding: 4px;
+  cursor: move;
+  user-select: none;
+  touch-action: none;
+}
+
+.handle-hint {
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: bold;
+  letter-spacing: -2px;
+  font-size: 14px;
+}
+
+.close-btn {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 20px;
+  line-height: 1;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.badge-approx {
+  font-size: 10px;
+  padding: 2px 8px;
+  background: rgba(255, 200, 0, 0.15);
+  color: #ffc800;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 200, 0, 0.3);
+  letter-spacing: 0.3px;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #fff;
+  word-break: break-word;
+}
+
+.row {
+  margin: 3px 0;
+  color: rgba(255, 255, 255, 0.88);
+  word-break: break-word;
+}
+
+.row.small {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.row.meta {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.row.tags {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+  margin-top: 6px;
+  font-style: italic;
+}
+
+/* Scrollbar sadelestirmesi */
+.card::-webkit-scrollbar {
+  width: 6px;
+}
+.card::-webkit-scrollbar-track {
+  background: transparent;
+}
+.card::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
