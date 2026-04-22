@@ -55,15 +55,19 @@ reloadBtn.addEventListener("click", async () => {
 });
 
 function sendToActiveTab(msg) {
+  // tab.url okumak icin "tabs" izni gerekir; izin yoksa undefined gelir.
+  // O yuzden URL kontrolu yerine direkt sendMessage deniyoruz - content
+  // script yoksa runtime.lastError doner, biz onu "yok" olarak yorumlariz.
   return new Promise(resolve => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const tab = tabs[0];
-      if (!tab || !tab.url || !tab.url.includes("youtube.com/watch")) {
+      if (!tab || !tab.id) {
         resolve(false);
         return;
       }
       chrome.tabs.sendMessage(tab.id, msg, (response) => {
         if (chrome.runtime.lastError) {
+          // Content script yok = aktif sekme YouTube /watch degil
           resolve(false);
         } else {
           resolve(!!response);

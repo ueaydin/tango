@@ -128,13 +128,33 @@
     "instrumental", "orquesta", "orkestra", "featuring"
   ]);
 
-  /** En iyi eslesmeyi dondurur veya null. */
+  /** Verilen token listesi icin Fuse extended search calistir, en iyi sonucu dondur. */
+  function trySearch(tokens, hintYear) {
+    if (!tokens.length) return null;
+    const query = tokens.map(t => "'" + t).join(" ");
+    const results = fuse.search(query, { limit: 10 });
+    if (!results.length) return null;
+
+    if (hintYear) {
+      results.forEach(r => {
+        const y = r.item.year;
+        if (y && Math.abs(y - hintYear) <= 1) {
+          r.score = Math.max(0, r.score - 0.05);
+        }
+      });
+      results.sort((a, b) => a.score - b.score);
+    }
+    const best = results[0];
+    if (best.score > settings.threshold) return null;
+    return best;
+  }
+
+  /** En iyi eslesmeyi dondurur veya null. Yazim hatasina dayanikli (hibrit fallback). */
   function findMatch(title) {
     if (!fuse) return null;
     const normTitle = normalize(title);
     if (!normTitle) return null;
 
-    // Fuse'un threshold'unu guncel tut
     if (fuse.options.threshold !== settings.threshold) {
       buildFuse();
     }
@@ -144,28 +164,34 @@
     const tokens = rawTokens.filter(t => t.length >= 3 && !STOPWORDS.has(t) && !/^\d{4}$/.test(t));
     if (tokens.length < 1) return null;
 
-    // Extended search sorgusu: her token 'fuzzy' olarak zorunlu.
-    // Format: "'token1 'token2 'token3" - hepsi ayni kayitta gecmeli (AND).
-    const query = tokens.map(t => "'" + t).join(" ");
-
-    const results = fuse.search(query, { limit: 10 });
-    if (!results.length) return null;
-
-    // Baslikta yil geciyorsa, o yila yakin kayitlari one cikar
     const hintYear = extractYear(title);
-    if (hintYear) {
-      results.forEach(r => {
-        const y = r.item.year;
-        if (y && Math.abs(y - hintYear) <= 1) {
-          r.score = Math.max(0, r.score - 0.05); // hafif bonus
-        }
-      });
-      results.sort((a, b) => a.score - b.score);
+
+    // Strateji 1: Tum token'lar zorunlu (en sıkı)
+    let best = trySearch(tokens, hintYear);
+    if (best) return best;
+
+    // Strateji 2: Token sayisi 4+ ise, en kisa token'i cikarip yeniden dene
+    // (yazim hatasi cogunlukla kisa kelimelerde olur)
+    if (tokens.length >= 4) {
+      const sorted = [...tokens].sort((a, b) => b.length - a.length);
+      best = trySearch(sorted.slice(0, -1), hintYear);
+      if (best) {
+        best.score = Math.min(0.5, best.score + 0.15); // approx olarak isaretle
+        return best;
+      }
     }
 
-    const best = results[0];
-    if (best.score > settings.threshold) return null;
-    return best;
+    // Strateji 3: Sadece en uzun 2 token (son care)
+    if (tokens.length >= 3) {
+      const sorted = [...tokens].sort((a, b) => b.length - a.length);
+      best = trySearch(sorted.slice(0, 2), hintYear);
+      if (best) {
+        best.score = Math.min(0.5, best.score + 0.25);
+        return best;
+      }
+    }
+
+    return null;
   }
 
   // --- Shadow DOM kart ------------------------------------------------------
